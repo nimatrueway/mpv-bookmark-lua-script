@@ -132,6 +132,21 @@ function file_exists(path)
   end
 end
 
+--// print current bookmark object
+function printBookmarkInfo(bookmark)
+  if bookmark ~= nil then
+  	local fp = bookmark["filepath"]    
+  	local pos = bookmark["pos"]
+  	local toprint = ""
+  	local dirname = GetImmediateDirectoryName(fp)
+  	local name = GetFileName(fp):gsub("_", " ")
+  	local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
+  	return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
+  else
+  	return "Undefined"
+  end	
+end
+
 --// save current file/pos to a bookmark object
 function currentPositionAsBookmark()
   local bookmark = {}
@@ -189,7 +204,7 @@ mp.register_script_message("bookmark-load", function(slot)
     return
   end
   bookmarkToCurrentPosition(bookmark, true)
-  mp.osd_message("Bookmark#" .. slot .. " loaded.")
+  mp.osd_message("Bookmark#" .. slot .. " loaded\n" .. printBookmarkInfo(bookmark))
 end)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
@@ -204,14 +219,5 @@ mp.register_script_message("bookmark-peek", function(slot)
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
     return
   end
-  local fp = bookmark["filepath"]    
-  local pos = bookmark["pos"]
-  local toprint = ""
-  if fp ~= nil then      
-  	local dirname = GetImmediateDirectoryName(fp)
-    local name = GetFileName(fp)
-    local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
-    toprint = existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
-  end  
-  mp.osd_message("Bookmark#" .. slot .. " :\n" .. toprint, 5)
+  mp.osd_message("Bookmark#" .. slot .. " :\n" .. printBookmarkInfo(bookmark))
 end)
