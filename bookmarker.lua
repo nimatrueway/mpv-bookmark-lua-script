@@ -1,3 +1,19 @@
+--// seconds to hh:mm:ss
+function displayTime(time)
+  local hours = math.floor(time/3600)
+  local minutes = math.floor((time % 3600)/60)
+  local seconds = math.floor((time % 60))
+  return string.format("%02d:%02d:%02d",hours,minutes,seconds)
+end
+
+--// Extract filename/immediate-dir from url
+function GetFileName(url)
+  return url:match("^.+/(.+)$")
+end
+function GetImmediateDirectoryName(url)
+  return url:match("^.*/([^/]+)/[^/]+$")
+end
+
 --// Save/Load string serializer function
 function exportstring( s )
   return string.format("%q", s)
@@ -174,4 +190,28 @@ mp.register_script_message("bookmark-load", function(slot)
   end
   bookmarkToCurrentPosition(bookmark, true)
   mp.osd_message("Bookmark#" .. slot .. " loaded.")
+end)
+
+--// handle "bookmark-peek" function triggered by a key in "input.conf"
+mp.register_script_message("bookmark-peek", function(slot)
+  local bookmarks, error = loadTable(getConfigFile())
+  if error ~= nil then
+    mp.osd_message("Error: " .. error)
+    return
+  end
+  local bookmark = bookmarks[slot]
+  if bookmark == nil then
+    mp.osd_message("Bookmark#" .. slot .. " is not set.")
+    return
+  end
+  local fp = bookmark["filepath"]    
+  local pos = bookmark["pos"]
+  local toprint = ""
+  if fp ~= nil then      
+  	local dirname = GetImmediateDirectoryName(fp)
+    local name = GetFileName(fp)
+    local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
+    toprint = existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
+  end  
+  mp.osd_message("Bookmark#" .. slot .. " :\n" .. toprint, 5)
 end)
