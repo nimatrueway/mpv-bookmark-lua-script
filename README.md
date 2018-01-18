@@ -15,5 +15,8 @@ Alt+Ctrl+2  script_message bookmark-peek 2
 ```
 * There is no limit to slots. (the whole bookmark data will be kept in file `~/.config/mpv/bookmarks.json`)
 
+###### Notice
+* All paths are saved with `/` path separator (even in Windows) to keep the same mechanism for all platforms.
+
 ###### Tested
-* Has been tested on Linux and macOS
+* Has been tested on Linux, macOS and Windows
