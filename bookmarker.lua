@@ -116,9 +116,23 @@ function loadTable( sfile )
   return tables[1]
 end
 
+--// check if windows
+function is_windows()
+  local windir = os.getenv("windir")
+  if windir ~= nil then
+    return true
+  else
+    return false
+  end
+end
+
 --// default file to save/load bookmarks to/from
 function getConfigFile()
-  return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
+  if is_windows() then
+    return os.getenv("APPDATA") .. "/mpv/bookmarks.json"
+  else  
+    return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
+  end
 end
 
 --// check whether a file exists or not
@@ -151,7 +165,7 @@ end
 function currentPositionAsBookmark()
   local bookmark = {}
   bookmark["pos"] = mp.get_property_number("time-pos")
-  bookmark["filepath"] = mp.get_property("path")
+  bookmark["filepath"] = mp.get_property("path"):gsub("\\", "/")
   bookmark["filename"] = mp.get_property("filename")
   return bookmark
 end
@@ -205,7 +219,7 @@ mp.register_script_message("bookmark-load", function(slot)
   end
   bookmarkToCurrentPosition(bookmark, true)
   mp.osd_message("Bookmark#" .. slot .. " loaded\n" .. printBookmarkInfo(bookmark))
-end)
+end
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-peek", function(slot)
