@@ -219,7 +219,7 @@ mp.register_script_message("bookmark-load", function(slot)
   end
   bookmarkToCurrentPosition(bookmark, true)
   mp.osd_message("Bookmark#" .. slot .. " loaded\n" .. printBookmarkInfo(bookmark))
-end
+end)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-peek", function(slot)
