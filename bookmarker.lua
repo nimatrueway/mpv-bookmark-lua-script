@@ -1,3 +1,5 @@
+local utils = require 'mp.utils'
+
 --// seconds to hh:mm:ss
 function displayTime(time)
   local hours = math.floor(time/3600)
@@ -19,101 +21,28 @@ function exportstring( s )
   return string.format("%q", s)
 end
 
---// The Save Function [copied from http://lua-users.org/wiki/SaveTableToFile]
-function saveTable(  tbl,filename )
-  local charS,charE = "   ","\n"
-  local file,err = io.open( filename, "wb" )
-  if err then return err end
-
-  -- initiate variables for save procedure
-  local tables,lookup = { tbl },{ [tbl] = 1 }
-  file:write( "return {"..charE )
-
-  for idx,t in ipairs( tables ) do
-    file:write( "-- Table: {"..idx.."}"..charE )
-    file:write( "{"..charE )
-    local thandled = {}
-
-    for i,v in ipairs( t ) do
-      thandled[i] = true
-      local stype = type( v )
-      -- only handle value
-      if stype == "table" then
-        if not lookup[v] then
-          table.insert( tables, v )
-          lookup[v] = #tables
-        end
-        file:write( charS.."{"..lookup[v].."},"..charE )
-      elseif stype == "string" then
-        file:write(  charS..exportstring( v )..","..charE )
-      elseif stype == "number" then
-        file:write(  charS..tostring( v )..","..charE )
-      end
-    end
-
-    for i,v in pairs( t ) do
-      -- escape handled values
-      if (not thandled[i]) then
-
-        local str = ""
-        local stype = type( i )
-        -- handle index
-        if stype == "table" then
-          if not lookup[i] then
-            table.insert( tables,i )
-            lookup[i] = #tables
-          end
-          str = charS.."[{"..lookup[i].."}]="
-        elseif stype == "string" then
-          str = charS.."["..exportstring( i ).."]="
-        elseif stype == "number" then
-          str = charS.."["..tostring( i ).."]="
-        end
-
-        if str ~= "" then
-          stype = type( v )
-          -- handle value
-          if stype == "table" then
-            if not lookup[v] then
-              table.insert( tables,v )
-              lookup[v] = #tables
-            end
-            file:write( str.."{"..lookup[v].."},"..charE )
-          elseif stype == "string" then
-            file:write( str..exportstring( v )..","..charE )
-          elseif stype == "number" then
-            file:write( str..tostring( v )..","..charE )
-          end
-        end
-      end
-    end
-    file:write( "},"..charE )
-  end
-  file:write( "}" )
-  file:close()
+--// Save a table as json to a file
+function saveTable(t, path) 
+    local contents = utils.format_json(t)    
+    local file = io.open(path, "wb")    
+    file:write( contents )
+    mp.osd_message(path)
+    io.close( file )
+    return true
 end
 
---// The Load Function [copied from http://lua-users.org/wiki/SaveTableToFile]
-function loadTable( sfile )
-  local ftables,err = loadfile( sfile )
-  if err then return _,err end
-  local tables = ftables()
-  for idx = 1,#tables do
-    local tolinki = {}
-    for i,v in pairs( tables[idx] ) do
-      if type( v ) == "table" then
-        tables[idx][i] = tables[v[1]]
-      end
-      if type( i ) == "table" and tables[i[1]] then
-        table.insert( tolinki,{ i,tables[i[1]] } )
-      end
+--// Load a table from a json-file
+function loadTable(path)
+    local contents = ""
+    local myTable = {}
+    local file = io.open( path, "r" )
+    if file then
+        local contents = file:read( "*a" )
+        myTable = utils.parse_json(contents);
+        io.close( file )
+        return myTable
     end
-    -- link indices
-    for _,v in ipairs( tolinki ) do
-      tables[idx][v[2]],tables[idx][v[1]] =  tables[idx][v[1]],nil
-    end
-  end
-  return tables[1]
+    return nil
 end
 
 --// check whether a file exists or not
@@ -125,6 +54,10 @@ function file_exists(path)
   else
     return false
   end
+end
+
+function platform_independent(filepath)  
+  return filepath
 end
 
 --// check if macos
@@ -145,11 +78,6 @@ function is_windows()
   else
     return false
   end
-end
-
---// if you are using the same bookmarks js for different platforms, implement a mechanism here to fix path prefixes
-function platform_independent(filepath)  
-  return filepath
 end
 
 --// default file to save/load bookmarks to/from
@@ -203,13 +131,13 @@ end
 
 --// handle "bookmark-set" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-set", function(slot)
-  local bookmarks, error = loadTable(getConfigFile())
-  if error ~= nil then
+  local bookmarks = loadTable(getConfigFile())
+  if bookmarks == nil then
     bookmarks = {}
   end
   bookmarks[slot] = currentPositionAsBookmark()
   local result = saveTable( bookmarks, getConfigFile())
-  if result ~= nil then
+  if result ~= true then
     mp.osd_message("Error saving: " .. result)
   end
   mp.osd_message("Bookmark#" .. slot .. " saved.")
@@ -217,9 +145,9 @@ end)
 
 --// handle "bookmark-load" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-load", function(slot)
-  local bookmarks, error = loadTable(getConfigFile())
-  if error ~= nil then
-    mp.osd_message("Error: " .. error)
+  local bookmarks = loadTable(getConfigFile())
+  if bookmarks == nil then
+    mp.osd_message("Error loading bookmarks.json")
     return
   end
   local bookmark = bookmarks[slot]
@@ -238,9 +166,9 @@ end)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-peek", function(slot)
-  local bookmarks, error = loadTable(getConfigFile())
-  if error ~= nil then
-    mp.osd_message("Error: " .. error)
+  local bookmarks = loadTable(getConfigFile())
+  if bookmarks == nil then
+    mp.osd_message("Error loading bookmarks.json")
     return
   end
   local bookmark = bookmarks[slot]
