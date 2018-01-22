@@ -22,4 +22,4 @@ Alt+Ctrl+2  script_message bookmark-peek 2
 * Has been tested on Linux, macOS and Windows
 
 ###### Shared bookmarks.json between different OSs
-* Read shared-bookmarks-different-os.md
+* Read [shared-bookmarks-different-os.md](shared-bookmarks-different-os.md)
