@@ -116,25 +116,6 @@ function loadTable( sfile )
   return tables[1]
 end
 
---// check if windows
-function is_windows()
-  local windir = os.getenv("windir")
-  if windir ~= nil then
-    return true
-  else
-    return false
-  end
-end
-
---// default file to save/load bookmarks to/from
-function getConfigFile()
-  if is_windows() then
-    return os.getenv("APPDATA") .. "/mpv/bookmarks.json"
-  else  
-    return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
-  end
-end
-
 --// check whether a file exists or not
 function file_exists(path)
   local f = io.open(path,"r")
@@ -144,6 +125,39 @@ function file_exists(path)
   else
     return false
   end
+end
+
+--// check if macos
+function is_macos()
+  local homedir = os.getenv("HOME")
+  if homedir ~= nil and homedir.sub(1, 6) == "/Users" then
+    return true
+  else
+    return false
+  end
+end
+
+--// check if windows
+function is_windows()
+  local windir = os.getenv("windir")
+  if windir~=nil then
+    return true
+  else
+    return false
+  end
+end
+
+--// if you are using the same bookmarks js for different platforms, implement a mechanism here to fix path prefixes
+function platform_independent(filepath)  
+  return filepath
+end
+
+--// default file to save/load bookmarks to/from
+function getConfigFile()
+  if is_windows() then
+  	return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
+  else	
+	return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
 end
 
 --// print current bookmark object
@@ -171,11 +185,11 @@ function currentPositionAsBookmark()
 end
 
 --// play to a bookmark
-function bookmarkToCurrentPosition(bookmark, tryToLoadFile)
+function bookmarkToCurrentPosition(bookmark, tryToLoadFile)  
   if mp.get_property("path") == bookmark["filepath"] then -- if current media is the same as bookmark media
     mp.set_property_number("time-pos", bookmark["pos"])
     return
-  elseif tryToLoadFile == true then
+  elseif tryToLoadFile == true then    
     mp.commandv("loadfile", bookmark["filepath"], "replace")
     local seekerFunc = {}
     seekerFunc.fn = function()
@@ -209,6 +223,7 @@ mp.register_script_message("bookmark-load", function(slot)
     return
   end
   local bookmark = bookmarks[slot]
+  bookmark["filepath"] = platform_independent(bookmark["filepath"]) -- NIMA
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
     return
@@ -229,6 +244,7 @@ mp.register_script_message("bookmark-peek", function(slot)
     return
   end
   local bookmark = bookmarks[slot]
+  bookmark["filepath"] = platform_independent(bookmark["filepath"]) -- NIMA
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
     return
