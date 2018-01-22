@@ -1,4 +1,4 @@
-## mpv-bookmarker <img src="https://cloud.githubusercontent.com/assets/8236909/9288343/8b64fb36-434a-11e5-980c-bd2cf67cb0a2.jpg" width="30">
+## mpv-bookmarker 2.0 <img src="https://cloud.githubusercontent.com/assets/8236909/9288343/8b64fb36-434a-11e5-980c-bd2cf67cb0a2.jpg" width="30">
 #### mpv-bookmarker is a lua script for mpv to to set bookmark on your favorite moments of certain media files 
 * **Warning**: `loadTable/saveTable` mechanism has been changed since version 1.0, now we're using standard `json` format. Delete your previous `bookmarks.json` file or manually convert it to standard `json`.
 
