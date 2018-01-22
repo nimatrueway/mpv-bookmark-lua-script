@@ -1,6 +1,6 @@
 If you have several operating-systems installed on your system and you go back and forth between them, you probably want to use a shared `bookmarks.json` and put this file on a partition that is mounted on all your operating-systems. Then you need to modify two functions in the script:
 
-* Firstly change `getConfigFile()` such that it points to a static file like this:
+* Firstly change `getConfigFile()` such that it points to a static file, and create an empty file there manually to avoid problems.
 ```lua
 function getConfigFile()
   return platform_independent("/shared/mpv/bookmarks.json")
