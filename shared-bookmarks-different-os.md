@@ -1,13 +1,13 @@
-If you have several OS installed on your system and you go back and forth between them; you probably want to use a shared `bookmarks.json` and put this file on a partition that is mounted on all your OSs. Then you need to modify two functions in the script:
+If you have several operating-systems installed on your system and you go back and forth between them, you probably want to use a shared `bookmarks.json` and put this file on a partition that is mounted on all your operating-systems. Then you need to modify two functions in the script:
 
-* Firstly `getConfigFile()` and change it such that it points to a static file like this:
+* Firstly change `getConfigFile()` such that it points to a static file like this:
 ```
 function getConfigFile()
   return platform_independent("/shared/mpv/bookmarks.json")
 end
 ```
 
-* Secondly implement `platform_independent()` function such that it takes care of platform-specific path-prefix; here's a simple mechanism that removes a prefix from the set, then tries all prefixes to see which works:
+* Secondly implement `platform_independent()` function such that it takes care of platform specific path prefixes. Here is a simple mechanism that detects a prefix from a set, then tries all prefixes in the set to see which works:
 
 ```
 function platform_independent(filepath)
