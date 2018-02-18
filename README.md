@@ -5,7 +5,7 @@
 ###### Usage
 * Copy `bookmarker.lua` script to (linux/macos) `~/.config/mpv/scripts/bookmarker.lua` (win) `%APPDATA%\mpv\scripts\bookmarker.lua`
 * Open key configuration file at (linux/macos) `~/.config/mpv/input.conf` (win) `%APPDATA%\mpv\input.conf` and 
-  map your desired keys to save/load/peek a specific bookmark. For example the lines below mean `Ctrl+1` will "save current filePath and seekPos to bookmark #1 slot" and `Alt+2` will "restore current filePath and seekPos from bookmark #2 slot" and `Alt+Ctrl+2` will give you a "peek of the filename, its immediate parent directory and seek-pos saved in the bookmark #2 slot"
+  map your desired keys to save/load/peek a specific bookmark. For example the lines below mean `Ctrl+1` will "save current filePath and seekPos to bookmark #1 slot" and `Alt+2` will "restore current filePath and seekPos from bookmark #2 slot", `Alt+Ctrl+2` will give you a "peek of the filename, its immediate parent directory and seek-pos saved in the bookmark #2 slot", `S` will update last saved/restored bookmark according to current file/pos only if their immediate parent directory is the same.
 ```    
 Ctrl+1 script_message bookmark-set  1
 Alt+1  script_message bookmark-load 1
@@ -13,6 +13,7 @@ Alt+Ctrl+1  script_message bookmark-peek 1
 Ctrl+2 script_message bookmark-set  2
 Alt+2  script_message bookmark-load 2
 Alt+Ctrl+2  script_message bookmark-peek 2
+S script_message bookmark-update
 ```
 * There is no limit to slots. (the whole bookmark data will be kept in file (linux/macos) `~/.config/mpv/bookmarks.json` (win) `%APPDATA%\mpv\bookmarks.json`)
 

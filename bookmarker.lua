@@ -1,5 +1,7 @@
 local utils = require 'mp.utils'
 
+local latest_loaded_bookmark = -1
+
 --// seconds to hh:mm:ss
 function displayTime(time)
   local hours = math.floor(time/3600)
@@ -140,8 +142,28 @@ mp.register_script_message("bookmark-set", function(slot)
   if result ~= true then
     mp.osd_message("Error saving: " .. result)
   end
+  latest_loaded_bookmark = slot
   mp.osd_message("Bookmark#" .. slot .. " saved.")
 end)
+mp.register_script_message("bookmark-set", bookmark_save)
+
+--// handle "bookmark-update" function triggered by a key in "input.conf" | basically updates latest saved/loaded bookmark if current file is with in the same directory
+function last_bookmark_update()
+  if latest_loaded_bookmark ~= -1 then
+    local bookmarks = loadTable(getConfigFile())
+    if bookmarks ~= nil then
+      local bookmark = bookmarks[latest_loaded_bookmark]
+      to_be_saved = currentPositionAsBookmark()
+      if bookmark ~= nil and to_be_saved ~= nil then
+        if GetImmediateDirectoryName(bookmark["filepath"]) == GetImmediateDirectoryName(to_be_saved["filepath"]) then
+        bookmark_save(latest_loaded_bookmark)
+        return
+        end
+      end  
+    end
+  end
+end
+mp.register_script_message("bookmark-update", last_bookmark_update)
 
 --// handle "bookmark-load" function triggered by a key in "input.conf"
 mp.register_script_message("bookmark-load", function(slot)
@@ -161,6 +183,7 @@ mp.register_script_message("bookmark-load", function(slot)
     return
   end
   bookmarkToCurrentPosition(bookmark, true)
+  latest_loaded_bookmark = slot
   mp.osd_message("Bookmark#" .. slot .. " loaded\n" .. printBookmarkInfo(bookmark))
 end)
 
