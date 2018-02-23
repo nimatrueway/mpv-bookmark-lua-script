@@ -17,6 +17,10 @@ end
 function GetImmediateDirectoryName(url)
   return url:match("^.*/([^/]+)/[^/]+$")
 end
+function GetDirectory(url)
+  return url:match("^(.*)/[^/]+$")
+end
+
 
 --// Save/Load string serializer function
 function exportstring( s )
@@ -28,7 +32,6 @@ function saveTable(t, path)
     local contents = utils.format_json(t)    
     local file = io.open(path, "wb")    
     file:write( contents )
-    mp.osd_message(path)
     io.close( file )
     return true
 end
@@ -58,14 +61,10 @@ function file_exists(path)
   end
 end
 
-function platform_independent(filepath)  
-  return filepath
-end
-
 --// check if macos
 function is_macos()
   local homedir = os.getenv("HOME")
-  if homedir ~= nil and homedir.sub(1, 6) == "/Users" then
+  if homedir ~= nil and string.sub(homedir,1,6) == "/Users" then
     return true
   else
     return false
@@ -93,23 +92,35 @@ end
 --// print current bookmark object
 function printBookmarkInfo(bookmark)
   if bookmark ~= nil then
-  	local fp = bookmark["filepath"]    
-  	local pos = bookmark["pos"]
-  	local toprint = ""
-  	local dirname = GetImmediateDirectoryName(fp)
-  	local name = GetFileName(fp):gsub("_", " ")
-  	local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
-  	return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
+    local fp = bookmark["filepath"]    
+    local pos = bookmark["pos"]
+    local toprint = ""
+    local dirname = GetImmediateDirectoryName(fp)
+    local name = GetFileName(fp):gsub("_", " ")
+    local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
+    return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
   else
-  	return "Undefined"
-  end	
+    return "Undefined"
+  end 
+end
+
+function fetchBookmark(slot)
+  local bookmarks = loadTable(getConfigFile())
+  if bookmarks == nil then
+    mp.osd_message("Error loading bookmarks.json")
+    return
+  end
+  local bookmark = bookmarks[slot]
+  bookmark["pos"] = math.max(bookmark["pos"] or 0, 0)
+  bookmark["filepath"] = platform_independent(bookmark["filepath"])
+  return bookmark
 end
 
 --// save current file/pos to a bookmark object
 function currentPositionAsBookmark()
   local bookmark = {}
   bookmark["pos"] = mp.get_property_number("time-pos")
-  bookmark["filepath"] = mp.get_property("path"):gsub("\\", "/")
+  bookmark["filepath"] = mp.get_property("path")
   bookmark["filename"] = mp.get_property("filename")
   return bookmark
 end
@@ -130,54 +141,52 @@ function bookmarkToCurrentPosition(bookmark, tryToLoadFile)
   end
 end
 
+--// get latest bookmark if it relates to current file (if they point to files that are in the same directory)
+function find_current_bookmark_slot()
+  if latest_loaded_bookmark ~= -1 then
+	  local bookmark = fetchBookmark(latest_loaded_bookmark)
+  	current_file = mp.get_property("path")
+  	if bookmark ~= nil and current_file ~= nil then
+  	  if GetDirectory(platform_independent(bookmark["filepath"])) == GetDirectory(platform_independent(current_file)) then
+        return latest_loaded_bookmark
+     end
+    end  
+  end
+  return nil
+end
 
 --// handle "bookmark-set" function triggered by a key in "input.conf"
-mp.register_script_message("bookmark-set", function(slot)
-  local bookmarks = loadTable(getConfigFile())
+function bookmark_save(slot)
+  local bookmarks = loadTable(getConfigFile())  
   if bookmarks == nil then
     bookmarks = {}
-  end
+  end  
   bookmarks[slot] = currentPositionAsBookmark()
   local result = saveTable( bookmarks, getConfigFile())
   if result ~= true then
     mp.osd_message("Error saving: " .. result)
   end
   latest_loaded_bookmark = slot
-  mp.osd_message("Bookmark#" .. slot .. " saved.")
-end)
+  mp.osd_message("Bookmark#" .. slot .. " saved.")  
+end
 mp.register_script_message("bookmark-set", bookmark_save)
 
 --// handle "bookmark-update" function triggered by a key in "input.conf" | basically updates latest saved/loaded bookmark if current file is with in the same directory
 function last_bookmark_update()
-  if latest_loaded_bookmark ~= -1 then
-    local bookmarks = loadTable(getConfigFile())
-    if bookmarks ~= nil then
-      local bookmark = bookmarks[latest_loaded_bookmark]
-      to_be_saved = currentPositionAsBookmark()
-      if bookmark ~= nil and to_be_saved ~= nil then
-        if GetImmediateDirectoryName(bookmark["filepath"]) == GetImmediateDirectoryName(to_be_saved["filepath"]) then
-        bookmark_save(latest_loaded_bookmark)
-        return
-        end
-      end  
-    end
+  slot_to_be_saved = find_current_bookmark_slot()
+  if slot_to_be_saved ~= nil then
+    bookmark_save(slot_to_be_saved)
   end
 end
 mp.register_script_message("bookmark-update", last_bookmark_update)
 
 --// handle "bookmark-load" function triggered by a key in "input.conf"
-mp.register_script_message("bookmark-load", function(slot)
-  local bookmarks = loadTable(getConfigFile())
-  if bookmarks == nil then
-    mp.osd_message("Error loading bookmarks.json")
-    return
-  end
-  local bookmark = bookmarks[slot]
-  bookmark["filepath"] = platform_independent(bookmark["filepath"]) -- NIMA
+mp.register_script_message("bookmark-load", function(slot)  
+  local bookmark = fetchBookmark(slot)
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
     return
-  end
+  end    
   if file_exists(bookmark["filepath"]) == false then
     mp.osd_message("File " .. bookmark["filepath"] .. " not found!")
     return
@@ -188,17 +197,22 @@ mp.register_script_message("bookmark-load", function(slot)
 end)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
-mp.register_script_message("bookmark-peek", function(slot)
-  local bookmarks = loadTable(getConfigFile())
-  if bookmarks == nil then
-    mp.osd_message("Error loading bookmarks.json")
-    return
-  end
-  local bookmark = bookmarks[slot]
-  bookmark["filepath"] = platform_independent(bookmark["filepath"]) -- NIMA
+function bookmark_peek(slot)
+  local bookmark = fetchBookmark(slot)
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
     return
   end
   mp.osd_message("Bookmark#" .. slot .. " :\n" .. printBookmarkInfo(bookmark))
-end)
+
+end
+mp.register_script_message("bookmark-peek", bookmark_peek)
+
+--// handle "bookmark-peek-current" function triggered by a key in "input.conf" | basically peeks at latest saved/loaded bookmark if current file is with in the same directory
+function current_bookmark_peek()
+  slot_to_be_saved = find_current_bookmark_slot()
+  if slot_to_be_saved ~= nil then
+    bookmark_peek(slot_to_be_saved)
+  end
+end
+mp.register_script_message("bookmark-peek-current", current_bookmark_peek)
