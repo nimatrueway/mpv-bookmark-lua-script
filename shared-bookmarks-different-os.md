@@ -7,7 +7,7 @@ function getConfigFile()
 end
 ```
 
-* Secondly implement `platform_independent()` function such that it takes care of platform specific path prefixes. Here is a simple mechanism that detects a prefix from a set, then tries all prefixes in the set to see which works:
+* Secondly implement `platform_independent()` function such that it takes care of platform specific path prefixes. Here is a simple mechanism that detects a prefix from a set, then replaces it with the appropriate prefix according to current platform:
 
 ```lua
 function platform_independent(filepath)
@@ -39,7 +39,9 @@ function platform_independent(filepath)
   end
   filepath = filepath:gsub("\\", "/")
   -- NOW INSTRUCT WHICH GROUP OF PREFIXES POINTING TO THE SAME PATH LIKE TWO LINES BELOW
-  -- NOTE: elements of every set should not share a prefix
+  -- NOTE1: ADD LINES LIKE THIS
+  --        filepath = try_suitable_prefix({ '{path-on-windows}', '{path-on-macos}', '{path-on-linux}' }, filepath)
+  -- NOTE2: elements of every set should not share a prefix
   filepath = try_suitable_prefix({ 'd:/', '/Volumes/Archive/', '/d/' }, filepath)
   filepath = try_suitable_prefix({ 'e:/home/nima/', '/Volumes/Linux/home/nima/', '/home/nima/' }, filepath)
   return filepath
