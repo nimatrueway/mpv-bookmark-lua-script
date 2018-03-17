@@ -28,11 +28,14 @@ function exportstring( s )
 end
 
 --// Save a table as json to a file
-function saveTable(t, path) 
-    local contents = utils.format_json(t)    
-    local file = io.open(path, "wb")    
-    file:write( contents )
+function saveTable(t, path)	
+    -- a simple machanism to make it transactional
+    local contents = utils.format_json(t)
+    local file = io.open(path .. ".tmp", "wb")    
+    file:write( contents )    
     io.close( file )
+    os.remove(path)
+    os.rename(path .. ".tmp", path)    
     return true
 end
 
