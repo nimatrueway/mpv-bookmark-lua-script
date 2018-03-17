@@ -111,6 +111,9 @@ function fetchBookmark(slot)
     return
   end
   local bookmark = bookmarks[slot]
+  if bookmark == nil then
+    return
+  end
   bookmark["pos"] = math.max(bookmark["pos"] or 0, 0)
   bookmark["filepath"] = platform_independent(bookmark["filepath"])
   return bookmark
