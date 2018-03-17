@@ -91,17 +91,18 @@ end
 
 --// print current bookmark object
 function printBookmarkInfo(bookmark)
-  if bookmark ~= nil then
-    local fp = bookmark["filepath"]    
-    local pos = bookmark["pos"]
-    local toprint = ""
-    local dirname = GetImmediateDirectoryName(fp)
-    local name = GetFileName(fp):gsub("_", " ")
-    local existance = (file_exists(bookmark["filepath"]) and "") or "[!!] "
-    return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
+  if bookmark ~= nil then    
+  	local fp = bookmark["filepath"] or "NO PATH HAS BEEN SET"
+    local dirname = GetImmediateDirectoryName(fp) or "NO DIRECTORY HAS BEEN SET"    
+    local name = GetFileName(fp) or "NO FILENAME HAS BEEN SET"
+    name = name:gsub("_", " ")
+  	local pos = bookmark["pos"] or "0"
+  	local toprint = ""
+  	local existance = (file_exists(fp) and "") or "[!!] "    
+  	return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
   else
-    return "Undefined"
-  end 
+  	return "Undefined"
+  end	
 end
 
 function fetchBookmark(slot)
