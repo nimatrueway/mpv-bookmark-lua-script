@@ -53,6 +53,10 @@ function loadTable(path)
     return nil
 end
 
+function platform_independent(filepath)  
+  return filepath
+end
+
 --// check whether a file exists or not
 function file_exists(path)
   local f = io.open(path,"r")
