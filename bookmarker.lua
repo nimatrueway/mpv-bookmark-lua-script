@@ -94,6 +94,7 @@ function getConfigFile()
   	return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
   else	
 	return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
+  end
 end
 
 --// print current bookmark object
