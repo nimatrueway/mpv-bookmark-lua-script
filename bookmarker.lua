@@ -59,12 +59,16 @@ end
 
 --// check whether a file exists or not
 function file_exists(path)
-  local f = io.open(path,"r")
-  if f~=nil then
-    io.close(f)
+  if path:sub(1, 4) == "http" then
     return true
   else
-    return false
+    local f = io.open(path,"r")
+    if f~=nil then
+      io.close(f)
+      return true
+    else
+      return false
+    end
   end
 end
 
@@ -131,7 +135,12 @@ end
 --// save current file/pos to a bookmark object
 function currentPositionAsBookmark()
   local bookmark = {}
-  bookmark["pos"] = mp.get_property_number("time-pos")
+  local isLiveStream = mp.get_property("duration") == 0
+  if isLiveStream then
+    bookmark["pos"] = nil
+  else
+    bookmark["pos"] = mp.get_property_number("time-pos")
+  end
   bookmark["filepath"] = mp.get_property("path")
   bookmark["filename"] = mp.get_property("filename")
   return bookmark
@@ -144,12 +153,14 @@ function bookmarkToCurrentPosition(bookmark, tryToLoadFile)
     return
   elseif tryToLoadFile == true then    
     mp.commandv("loadfile", bookmark["filepath"], "replace")
-    local seekerFunc = {}
-    seekerFunc.fn = function()
-      mp.unregister_event(seekerFunc.fn);
-      bookmarkToCurrentPosition(bookmark, false)
+    if bookmark["pos"] ~= nil then
+      local seekerFunc = {}
+      seekerFunc.fn = function()
+        mp.unregister_event(seekerFunc.fn);
+        bookmarkToCurrentPosition(bookmark, false)
+      end
+      mp.register_event("playback-restart", seekerFunc.fn)
     end
-    mp.register_event("playback-restart", seekerFunc.fn)
   end
 end
 
