@@ -22,6 +22,12 @@ end
 function GetDirectory(url)
   return url:match("^(.*)/[^/]+$")
 end
+function GetHostName(url)
+  return path:match("^http[s]?://([^/]+).*$")
+end
+function GetUrlPath(url)
+  return path:match("^http[s]?://[^/]+[/]?(.*)$")
+end
 
 
 --// Save/Load string serializer function
@@ -48,8 +54,8 @@ function loadTable(path)
   local file = io.open(path, "r")
   if file then
     local contents = file:read("*a")
-    myTable = utils.parse_json(contents);
     io.close(file)
+    myTable = utils.parse_json(contents);
     return myTable
   end
   return nil
@@ -59,9 +65,19 @@ function platform_independent(filepath)
   return filepath
 end
 
+--// check if it's a url/stream
+function is_url(path)
+  if path ~= nil and string.sub(path, 1, 4) == "http" then
+    msg.debug("[path/url]", "detected as stream: '" .. path .. "'")
+    return true
+  else
+    return false
+  end
+end
+
 --// check whether a file exists or not
 function file_exists(path)
-  if path:sub(1, 4) == "http" then
+  if is_url(path) then
     return true
   else
     local f = io.open(path, "r")
@@ -95,6 +111,7 @@ function is_windows()
 end
 
 --// default file to save/load bookmarks to/from
+
 function getConfigFile()
   if is_windows() then
     return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
@@ -106,13 +123,19 @@ end
 --// print current bookmark object
 function printBookmarkInfo(bookmark)
   if bookmark ~= nil then
-    local fp = bookmark["filepath"] or "NO PATH HAS BEEN SET"
-    local dirname = GetImmediateDirectoryName(fp) or "NO DIRECTORY HAS BEEN SET"
-    local name = GetFileName(fp) or "NO FILENAME HAS BEEN SET"
-    name = name:gsub("_", " ")
+    local path = bookmark["filepath"] or "UNDEFINED PATH"
+    local dirname = "UNDEFINED DIRECTORY"
+    local name = "UNDEFINED FILENAME"
+    if is_url(path) then
+      dirname = GetHostName(path) or "INVALID URL"
+      name = GetUrlPath(path) or "INVALID URL"
+    else
+      dirname = GetImmediateDirectoryName(path) or "INVALID DIRECTORY"
+      name = GetFileName(path) or "INVALID FILENAME"
+      name = name:gsub("_", " ")
+    end
+    local existance = (file_exists(path) and "") or "[!!] "
     local pos = bookmark["pos"] or "0"
-    local toprint = ""
-    local existance = (file_exists(fp) and "") or "[!!] "
     return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
   else
     return "Undefined"
@@ -225,7 +248,8 @@ end
 mp.register_script_message("bookmark-update", last_bookmark_update)
 
 --// handle "bookmark-load" function triggered by a key in "input.conf"
-mp.register_script_message("bookmark-load", function(slot)
+function bookmark_load(slot)
+  msg.debug("[interface]", "received bookmark-load(" .. slot .. ") script message.")
   local bookmark = fetchBookmark(slot)
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
@@ -238,7 +262,8 @@ mp.register_script_message("bookmark-load", function(slot)
   bookmarkToCurrentPosition(bookmark, true)
   latest_loaded_bookmark = slot
   mp.osd_message("Bookmark#" .. slot .. " loaded\n" .. printBookmarkInfo(bookmark))
-end)
+end
+mp.register_script_message("bookmark-load", bookmark_load)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
 function bookmark_peek(slot)
