@@ -66,7 +66,7 @@ function loadTable(path)
   if file then
     local contents = file:read("*a")
     io.close(file)
-    msg.debug("[persistence]", "bookmark file successfully loaded.")
+    msg.debug("[persistence]", "bookmark file successfully loaded. length: " .. string.len(contents))
     myTable = utils.parse_json(contents);
     msg.debug("[persistence]", tableLength(myTable) .. " slots found.")
     return myTable
