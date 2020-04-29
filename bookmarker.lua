@@ -1,4 +1,10 @@
-local utils = require 'mp.utils'
+-- DEBUGGING
+--
+-- Debug messages will be printed to stdout with mpv command line option
+-- `--msg-level='bookmarker=debug'`
+
+local utils = require('mp.utils')
+local msg = require('mp.msg')
 
 local latest_loaded_bookmark = -1
 local latest_saved_bookmark = -1
@@ -44,25 +50,33 @@ function saveTable(t, path)
   io.close(file)
   os.remove(path)
   os.rename(path .. ".tmp", path)
+  msg.debug("[persistence]", "bookmark file successfully saved.")
   return true
 end
 
 --// Load a table from a json-file
 function loadTable(path)
-  local contents = ""
+  function tableLength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+  end
   local myTable = {}
   local file = io.open(path, "r")
   if file then
     local contents = file:read("*a")
     io.close(file)
+    msg.debug("[persistence]", "bookmark file successfully loaded.")
     myTable = utils.parse_json(contents);
+    msg.debug("[persistence]", tableLength(myTable) .. " slots found.")
     return myTable
   end
+  msg.warn("[persistence]", "could not load bookmark file!")
   return nil
 end
 
 function platform_independent(filepath)
-  return filepath
+  return filepath -- // see "shared-bookmarks-different-os.md" to see utility of this function
 end
 
 --// check if it's a url/stream
@@ -85,6 +99,7 @@ function file_exists(path)
       io.close(f)
       return true
     else
+      msg.debug("[path/url]", "'" .. path .. "' did not exist.")
       return false
     end
   end
@@ -94,6 +109,7 @@ end
 function is_macos()
   local homedir = os.getenv("HOME")
   if homedir ~= nil and string.sub(homedir, 1, 6) == "/Users" then
+    msg.debug("[os/detector]", "macOS detected.")
     return true
   else
     return false
@@ -104,6 +120,7 @@ end
 function is_windows()
   local windir = os.getenv("windir")
   if windir ~= nil then
+    msg.debug("[os/detector]", "windows detected.")
     return true
   else
     return false
@@ -113,11 +130,14 @@ end
 --// default file to save/load bookmarks to/from
 
 function getConfigFile()
+  local path = ''
   if is_windows() then
-    return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
+    path = os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
   else
-    return os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
+    path = os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
   end
+  msg.debug("[persistence]", "config file is set to '" .. path .. "'.")
+  return path
 end
 
 --// print current bookmark object
@@ -150,10 +170,12 @@ function fetchBookmark(slot)
   end
   local bookmark = bookmarks[slot]
   if bookmark == nil then
+    msg.debug("[persistence]", "slot[" .. slot .. "] is empty!")
     return
   end
   bookmark["pos"] = math.max(bookmark["pos"] or 0, 0)
   bookmark["filepath"] = platform_independent(bookmark["filepath"])
+  msg.debug("[persistence]", "slot[" .. slot .. "] loaded: " .. utils.format_json(bookmark))
   return bookmark
 end
 
@@ -168,16 +190,25 @@ function currentPositionAsBookmark()
   end
   bookmark["filepath"] = mp.get_property("path")
   bookmark["filename"] = mp.get_property("filename")
+  msg.debug("[interface]", "bookmark to be saved: { " .. utils.format_json(bookmark) .. " }")
   return bookmark
 end
 
 --// play to a bookmark
-function bookmarkToCurrentPosition(bookmark, tryToLoadFile)
+function bookmarkToCurrentPosition(bookmark, firstStep)
+  if firstStep then
+    msg.debug("[interface]", "bookmark to be loaded: { " .. utils.format_json(bookmark) .. " }")
+  end
   if mp.get_property("path") == bookmark["filepath"] then
+    if firstStep then
+      msg.debug("[interface]", "file is already loaded.")
+    end
+    msg.debug("[interface]", "setting position to: " .. bookmark["pos"])
     -- if current media is the same as bookmark media
     mp.set_property_number("time-pos", bookmark["pos"])
     return
-  elseif tryToLoadFile == true then
+  elseif firstStep == true then
+    msg.debug("[interface]", "setting path to: '" .. bookmark["filepath"] .. "'")
     mp.commandv("loadfile", bookmark["filepath"], "replace")
     if bookmark["pos"] ~= nil then
       local seekerFunc = {}
@@ -186,7 +217,10 @@ function bookmarkToCurrentPosition(bookmark, tryToLoadFile)
         bookmarkToCurrentPosition(bookmark, false)
       end
       mp.register_event("playback-restart", seekerFunc.fn)
+      msg.debug("[interface]", "waiting for file/url to load.")
     end
+  else
+    msg.debug("[interface]", "setting the position is cancelled as the path is not loaded.")
   end
 end
 
@@ -197,15 +231,19 @@ function find_current_bookmark_slot()
     current_file = mp.get_property("path")
     if bookmark ~= nil and current_file ~= nil then
       if GetDirectory(platform_independent(bookmark["filepath"])) == GetDirectory(platform_independent(current_file)) then
+        msg.debug("[interface]", "Current bookmark slot detected as: " .. latest_loaded_bookmark)
         return latest_loaded_bookmark
       end
+      msg.debug("[interface]", "Lastest loaded bookmark slot was " .. latest_loaded_bookmark .. " but the path has been changed.")
     end
   end
+  msg.debug("[interface]", "No bookmark has been loaded yet.")
   return nil
 end
 
 --// handle "bookmark-set" function triggered by a key in "input.conf"
 function bookmark_save(slot)
+  msg.debug("[interface]", "received 'bookmark-set(" .. slot .. ")' script message.")
   local bookmarks = loadTable(getConfigFile())
   if bookmarks == nil then
     bookmarks = {}
@@ -240,6 +278,7 @@ mp.register_script_message("bookmark-set-undo", bookmark_save_undo)
 
 --// handle "bookmark-update" function triggered by a key in "input.conf" | basically updates latest saved/loaded bookmark if current file is with in the same directory
 function last_bookmark_update()
+  msg.debug("[interface]", "received 'bookmark-update' script message.")
   slot_to_be_saved = find_current_bookmark_slot()
   if slot_to_be_saved ~= nil then
     bookmark_save(slot_to_be_saved)
@@ -267,6 +306,7 @@ mp.register_script_message("bookmark-load", bookmark_load)
 
 --// handle "bookmark-peek" function triggered by a key in "input.conf"
 function bookmark_peek(slot)
+  msg.debug("[interface]", "received 'bookmark-peek(" .. slot .. ")' script message.")
   local bookmark = fetchBookmark(slot)
   if bookmark == nil then
     mp.osd_message("Bookmark#" .. slot .. " is not set.")
@@ -279,6 +319,7 @@ mp.register_script_message("bookmark-peek", bookmark_peek)
 
 --// handle "bookmark-peek-current" function triggered by a key in "input.conf" | basically peeks at latest saved/loaded bookmark if current file is with in the same directory
 function current_bookmark_peek()
+  msg.debug("[interface]", "received 'bookmark-peek-current' script message.")
   slot_to_be_saved = find_current_bookmark_slot()
   if slot_to_be_saved ~= nil then
     bookmark_peek(slot_to_be_saved)
