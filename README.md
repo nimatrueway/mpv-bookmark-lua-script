@@ -15,6 +15,7 @@ Alt+2  script_message bookmark-load 2
 Alt+Ctrl+2  script_message bookmark-peek 2
 s script_message bookmark-update            # `s` will update last saved/restored bookmark
 d script_message bookmark-peek-current      # `d` will peek last saved/restored bookmark (lastest saved/restored bookmark is only considered if current file is in the same directory as the bookmark file)
+u script_message bookmark-set-undo          # `u` will undo/revert last save or update action 
 ```
 * There is no limit to slots. (the whole bookmark data will be kept in file (linux/macos) `~/.config/mpv/bookmarks.json` (win) `%APPDATA%\mpv\bookmarks.json`)
 
