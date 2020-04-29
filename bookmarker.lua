@@ -75,10 +75,6 @@ function loadTable(path)
   return nil
 end
 
-function platform_independent(filepath)
-  return filepath -- // see "shared-bookmarks-different-os.md" to see utility of this function
-end
-
 --// check if it's a url/stream
 function is_url(path)
   if path ~= nil and string.sub(path, 1, 4) == "http" then
@@ -127,8 +123,11 @@ function is_windows()
   end
 end
 
---// default file to save/load bookmarks to/from
+function platform_independent(filepath)
+  return filepath -- // see "shared-bookmarks-different-os.md" to see utility of this function
+end
 
+--// default file to save/load bookmarks to/from
 function getConfigFile()
   local path = ''
   if is_windows() then
