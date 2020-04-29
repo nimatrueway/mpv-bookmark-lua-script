@@ -29,10 +29,10 @@ function GetDirectory(url)
   return url:match("^(.*)/[^/]+$")
 end
 function GetHostName(url)
-  return path:match("^http[s]?://([^/]+).*$")
+  return url:match("^http[s]?://([^/]+).*$")
 end
 function GetUrlPath(url)
-  return path:match("^http[s]?://[^/]+[/]?(.*)$")
+  return url:match("^http[s]?://[^/]+[/]?(.*)$")
 end
 
 
