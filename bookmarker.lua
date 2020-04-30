@@ -35,7 +35,6 @@ function GetUrlPath(url)
   return url:match("^http[s]?://[^/]+[/]?(.*)$")
 end
 
-
 --// Save/Load string serializer function
 function exportstring(s)
   return string.format("%q", s)
@@ -66,8 +65,15 @@ function loadTable(path)
   if file then
     local contents = file:read("*a")
     io.close(file)
-    msg.debug("[persistence]", "bookmark file successfully loaded. length: " .. string.len(contents))
+    local length = string.len(contents)
+    msg.debug("[persistence]", "bookmark file successfully loaded. length: " .. length)
+    if length == 0 then
+      contents = "{}"
+    end
     myTable = utils.parse_json(contents);
+    if not myTable then
+      error("Corrupt bookmark file '" .. path .. "', please remove it! bookmarker will automatically create a new file.")
+    end
     msg.debug("[persistence]", tableLength(myTable) .. " slots found.")
     return myTable
   end
