@@ -20,6 +20,14 @@ u script_message bookmark-set-undo          # `u` will undo/revert last save or 
 ###### Notice
 * All paths are saved with `/` path separator (even in Windows) to keep the same mechanism for all platforms.
 
+###### Bug reporting
+
+Feel free to create an issue in github, but make sure you provide me with enough information in the description:
+
+* Your operating system.
+* Run `mpv` with `--msg-level='bookmarker=debug'` and attach your console output to the issue.
+* Your `bookmarks.json` in case you have encountered corrupt bookmark data file error and you need my help to fix it.
+
 ###### Tested
 * Has been tested on Linux, macOS and Windows
 
