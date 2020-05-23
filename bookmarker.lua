@@ -161,7 +161,13 @@ function printBookmarkInfo(bookmark)
     end
     local existance = (file_exists(path) and "") or "[!!] "
     local pos = bookmark["pos"] or "0"
-    return existance .. dirname .. "\n" .. existance .. name .. "\n" .. displayTime(tonumber(pos))
+    local title = bookmark["title"]
+    if title ~= nil and title ~= "" and title ~= name then
+      title = "\n" .. title
+    else
+      title = ""
+    end
+    return existance .. dirname .. "\n" .. existance .. name .. title .. "\n" .. displayTime(tonumber(pos))
   else
     return "Undefined"
   end
@@ -195,6 +201,7 @@ function currentPositionAsBookmark()
   end
   bookmark["filepath"] = mp.get_property("path")
   bookmark["filename"] = mp.get_property("filename")
+  bookmark["title"] = mp.get_property("media-title")
   msg.debug("[interface]", "bookmark to be saved: { " .. utils.format_json(bookmark) .. " }")
   return bookmark
 end
