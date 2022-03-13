@@ -190,6 +190,47 @@ function fetchBookmark(slot)
   return bookmark
 end
 
+-- some functions borrowed from https://github.com/donmaiq/mpv-filenavigator
+--escape a file or directory path for use in shell arguments
+function escapepath(dir, escapechar)
+  return string.gsub(dir, escapechar, '\\'..escapechar)
+end
+
+function os.capture(cmd, raw)
+  local f = assert(io.popen(cmd, 'r'))
+  local s = assert(f:read('*a'))
+  f:close()
+  return string.sub(s, 0, -2)
+end
+
+--ensures directories never accidentally end in "//" due to our added slash
+function stripdoubleslash(dir)
+  if (string.sub(dir, -2) == "//") then
+    return string.sub(dir, 1, -2) --negative 2 removes the last character
+  else
+    return dir
+  end
+end
+
+--resolves relative paths such as "/home/foo/../foo/Music" (to "/home/foo/Music") if the folder exists!
+function resolvedir(dir)
+  local safedir = escapepath(dir, '"')
+  --if dir doesn't exist or can't be entered, this returns "/" (root of the drive) as the resolved path
+  local resolved = stripdoubleslash(os.capture('cd "'..safedir..'" && pwd').."/")
+  return resolved
+end
+
+--// retrieves the absolute path of a file without the filename
+function absolutePath(playpath, playfilename)
+  local workingdir = mp.get_property("working-directory")
+  local path = string.sub(playpath, 1, string.len(playpath)-string.len(playfilename))
+  if (firstchar ~= "/") then --the path of the playing file wasn't absolute, so we need to add mpv's working dir to it
+	path = workingdir.."/"..path
+  end
+  path = resolvedir(path)
+  return path
+end
+
 --// save current file/pos to a bookmark object
 function currentPositionAsBookmark()
   local bookmark = {}
@@ -199,7 +240,7 @@ function currentPositionAsBookmark()
   else
     bookmark["pos"] = mp.get_property_number("time-pos")
   end
-  bookmark["filepath"] = mp.get_property("path")
+  bookmark["filepath"] = absolutePath(mp.get_property("path"), mp.get_property("filename"))
   bookmark["filename"] = mp.get_property("filename")
   bookmark["title"] = mp.get_property("media-title")
   msg.debug("[interface]", "bookmark to be saved: { " .. utils.format_json(bookmark) .. " }")
