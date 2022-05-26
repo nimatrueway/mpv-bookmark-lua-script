@@ -1,5 +1,11 @@
 ## mpv-bookmarker 2.0 <img src="https://cloud.githubusercontent.com/assets/8236909/9288343/8b64fb36-434a-11e5-980c-bd2cf67cb0a2.jpg" width="30">
 
+###### Won't be maintained
+
+I encourage you all to use this plugin, which has a simpler and handier interface:
+
+https://github.com/NurioHin/mpv-bookmarker
+
 ###### Usage
 * Copy `bookmarker.lua` script to (linux/macos) `~/.config/mpv/scripts/bookmarker.lua` (win) `%APPDATA%\mpv\scripts\bookmarker.lua`
 * Open key configuration file at (linux/macos) `~/.config/mpv/input.conf` (win) `%APPDATA%\mpv\input.conf` and 
